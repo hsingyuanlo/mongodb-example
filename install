@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# copy envinfo to ~/.config/mongotest/
+if [ ! -e ~/.config/mongotest ]; then
+    mkdir ~/.config/mongotest
+fi
+
+cp config/envinfo ~/.config/mongotest/
+
+# create link to ~/bin/mcmd
+if [ ! -d ~/bin ]; then
+    mkdir ~/bin
+fi
+
+if [ -h ~/bin/mcmd ]; then
+    rm ~/bin/mcmd
+fi
+
+cp config/mcmd ~/bin/
+chmod +x ~/bin/mcmd
+
+echo "[mklink] Run mcmd for more information..."
+

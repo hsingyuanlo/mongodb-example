@@ -1,0 +1,236 @@
+#!/bin/bash
+
+ENVINFO=~/.config/mongotest/envinfo
+
+check() {
+    if [ ! -e "$ENVINFO" ]; then
+        echo "Could not find file \"$ENVINFO\""
+        echo "You should run \"./install\" first"
+        exit 1
+    fi
+    . "$ENVINFO"
+
+    if [ ! -e "$DBPATH" ]; then
+        echo "\$DBPATH is not correct"
+        exit 1
+    fi
+
+    if [ ! -e "$CONFPATH" ]; then
+        echo "\$CONFPATH is not correct"
+        exit 1
+    fi
+
+    KEYPATH=$CONFPATH
+    JSPATH=$CONFPATH
+}
+
+start() {
+    for index in ${!LOCAL_PORTS[@]}
+    do
+        mongod --bind_ip "$LOCAL_HOST" \
+               --port "${LOCAL_PORTS[$index]}" \
+               --dbpath "$DBPATH/srv$index" \
+               --logpath "$DBPATH/log/srv$index.log" \
+               --replSet "$REPLICA_NAME" \
+               --smallfiles \
+               --oplogSize 128 \
+               --fork \
+               --httpinterface
+    done
+
+    status
+}
+
+start_security() {
+    for index in ${!LOCAL_PORTS[@]}
+    do
+        mongod --bind_ip "$LOCAL_HOST" \
+               --port "${LOCAL_PORTS[$index]}" \
+               --dbpath "$DBPATH/srv$index" \
+               --logpath "$DBPATH/log/srv$index.log" \
+               --replSet "$REPLICA_NAME" \
+               --smallfiles \
+               --oplogSize 128 \
+               --auth \
+               --keyFile "$KEYPATH/mongodb-keyfile" \
+               --fork \
+               --httpinterface
+    done
+
+    status
+}
+
+stop() {
+    ps aux | grep -v "grep" | grep "mongod" | awk '{print $2}' | xargs kill
+}
+
+config() {
+    if [ ! -e $JSPATH/setup_template.js ]; then
+        echo "$JSPATH/setup_template.js does not exist"
+        exit 1
+    fi
+
+    # Use setup_template.js to generate setup.js
+    probe_data=""
+    member=""
+    for index in ${!REPLICA_MEMBERS[@]}
+    do
+        if [ $index == "0" ]; then
+            member="\"$LOCAL_HOST:${REPLICA_MEMBERS[$index]}\""
+            probe_data="$LOCAL_HOST:${REPLICA_MEMBERS[$index]}"
+        else
+            member="$member, \"$LOCAL_HOST:${REPLICA_MEMBERS[$index]}\""
+        fi
+    done
+    arbiter="\"$LOCAL_HOST:$REPLICA_ARBITER\""
+    cat $JSPATH/setup_template.js \
+                    | sed "s/{MEMBERS}/var members = [$member]/g" \
+                    | sed "s/{ARBITOR}/var arbiter = $arbiter/g" \
+                    | sed "s/{ROOT_USER}/user:\"$AUTH_USER\"/g" \
+                    | sed "s/{ROOT_PASS}/pwd:\"$AUTH_PASSWORD\"/g" \
+                    > $JSPATH/setup.js
+
+    probe_host=`echo $probe_data | awk '{print $1}' | awk 'BEGIN {FS=":"} {print $1}'`
+    probe_port=`echo $probe_data | awk '{print $1}' | awk 'BEGIN {FS=":"} {print $2}'`
+
+    echo "Probe host: $probe_host"
+    echo "Probe port: $probe_port"
+
+    if [ -n "$probe_host" ] && [ -n "$probe_port" ]; then
+        # config replica set environment
+        mongo --host $probe_host --port $probe_port $JSPATH/setup.js
+    fi
+}
+
+status() {
+    ps_result=`ps aux | grep -v "grep" | grep "mongod"`
+    if [ "$ps_result" != "" ]; then
+        echo "PID HOST PORT" | awk '{print $1 "\t" $2 "\t\t" $3}'
+    else
+        echo "No mongod service is running !!!"
+    fi
+    ps aux | grep -v "grep" | grep "mongod" | awk '{print $2 "\t" $13 "\t" $15}'
+}
+
+build() {
+    # create mongodb path
+    for index in ${!LOCAL_PORTS[@]}
+    do
+        mkdir $DBPATH/srv$index
+    done
+
+    # clean log path
+    mkdir $DBPATH/log
+
+    # list 
+    ls -la $DBPATH
+}
+
+clean() {
+    # clean all mongodb data
+    for index in ${!LOCAL_PORTS[@]}
+    do
+        rm -rf $DBPATH/srv$index
+    done
+    # clean all logs
+    rm -rf $DBPATH/log
+
+    # list
+    ls -la $DBPATH
+}
+
+login() {
+    if [ ! -e $JSPATH/probe.js ]; then
+        echo "$JSPATH/probe.js does not exist"
+        exit 1
+    fi
+
+    probe_data=`ps aux | grep -v "grep" | grep "mongod" | awk '{print $13":"$15}'`
+
+    probe_host=`echo $probe_data | awk '{print $1}' | awk 'BEGIN {FS=":"} {print $1}'`
+    probe_port=`echo $probe_data | awk '{print $1}' | awk 'BEGIN {FS=":"} {print $2}'`
+
+    probe=`mongo --host $probe_host --port $probe_port $JSPATH/probe.js`
+    probe_val=$?
+    if [ "$probe_val" == "0" ]; then
+        primary_host=`echo $probe | awk '{print $8}' | awk 'BEGIN {FS=":"} {print $1}'`
+        primary_port=`echo $probe | awk '{print $8}' | awk 'BEGIN {FS=":"} {print $2}'`
+        
+        echo "PRIMARY_HOST: $primary_host"
+        echo "PRIMARY_PORT: $primary_port"
+
+        if [ $primary_host != "undefined" ]; then
+            mongo --host $primary_host --port $primary_port
+        else
+            echo "[ERROR] Cannot get primary host and port. It might because"
+            echo "        1. System is not ready, please wait for a while"
+            echo "        2. Replica Set is not configured, please run \"mcmd config!\""
+        fi
+    else
+        echo "[ERROR] Mongod server is not found. It might because"
+        echo "        1. System mongodb is running, please run \"sudo service mongod stop\""
+        echo "        2. You do not start mongodb, please run \"mcmd start\""
+        echo ""
+        echo "Run mcmd status to check status..."
+        status
+    fi
+}
+
+env() {
+    echo ""
+    echo "====================================="
+    echo " LOCAL_HOST=$LOCAL_HOST"
+    echo " LOCAL_PORTS=${LOCAL_PORTS[@]}"
+    echo "====================================="
+
+    echo "====================================="
+    echo " DBPATH=$DBPATH"
+    echo " CONFPATH=$CONFPATH"
+    echo "====================================="
+
+    echo "====================================="
+    echo " REPLICA_NAME=$REPLICA_NAME"
+    echo " REPLICA_MEMBERS=${REPLICA_MEMBERS[@]}"
+    echo " REPLICA_ARBITOR=$REPLICA_ARBITER"
+    echo "====================================="
+    echo ""
+}
+
+check
+
+case "$1" in 
+    "start")
+        start
+        ;;
+    "start_s")
+        start_security
+        ;;
+    "stop")
+        stop
+        ;;
+    "config")
+        config
+        ;;
+    "status")
+        status
+        ;;
+    "build")
+        build
+        ;;
+    "clean")
+        clean
+        ;;
+    "login")
+        login
+        ;;
+    "env")
+        env
+        ;;
+    *)
+        echo "----------------------------------------------------------------"
+        echo " This script is used to create test environment for mongodb"
+        echo " Usage: mcmd [options]"
+        echo " Options: start(start_s) | stop | config | status | build | clean | login | env"
+        ;;
+esac
+

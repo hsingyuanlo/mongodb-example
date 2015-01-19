@@ -1,0 +1,16 @@
+# Process information
+LOCAL_HOST="192.168.80.11"
+LOCAL_PORTS=("27017" "27018" "27021")
+
+# Mongodb path
+DBPATH="/home/hylo/workspace/mongodb"
+CONFPATH="/home/hylo/workspace/mongotest/config"
+
+# Replica information
+REPLICA_NAME="theme"
+REPLICA_MEMBERS=("27017" "27018")
+REPLICA_ARBITER="27021"
+
+# Authentication
+AUTH_USER="hylo"
+AUTH_PASSWORD="1234"
