@@ -1,5 +1,5 @@
 # mongodb-example
-This test program is used to establish replica set including even number of members and 1 arbitor in OS.  
+This test program is used to establish replica set including even number of members and 1 arbitor in single OS.  
 
 # Environment setting
 
@@ -7,7 +7,7 @@ You need to modify settings in config/envinfo
 - LOCAL_HOST is the ip of your computer (At best not use 127.0.0.1/localhost, something will happen)  
 - LOCAL_PORTS is a list of different ports  
   
-- DBPATH is the path where the database folder of the five mongod servers will be  
+- DBPATH is the path where the database folder of the mongod servers will be  
 - CONFPATH is the config path for mcmd  
   
 - REPLICA_NAME is the name of replica set  
@@ -18,7 +18,8 @@ You need to modify settings in config/envinfo
 - AUTH_PASSWORD is the password
   
 # Setup the test environment (install)  
-- 1. cp config/mcmd to ~/bin/, and then you can use mcmd  
+Just run install, and it will help you to do below things
+- 1. cp config/mcmd to ~/bin/, and then you can use mcmd tool 
 - 2. cp envinfo to ~/.config/mongotest/, this will be used when mcmd is runnung  
   
 # mcmd options
