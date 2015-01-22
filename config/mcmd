@@ -139,6 +139,11 @@ clean() {
     ls -la $DBPATH
 }
 
+folder() {
+    echo "Display $DBPATH"
+    ls -la $DBPATH
+}
+
 login() {
     if [ ! -e $JSPATH/probe.js ]; then
         echo "$JSPATH/probe.js does not exist"
@@ -219,6 +224,9 @@ case "$1" in
         ;;
     "clean")
         clean
+        ;;
+    "folder")
+        folder
         ;;
     "login")
         login
