@@ -27,6 +27,8 @@ Just run install, and it will help you to do below things
 * build db path and log path (mcmd build)  
   
 * clean db path and log path (mcmd clean)  
+
+* show current db directory (mcmd folder)
   
 * start mongod (mcmd start)  
   
