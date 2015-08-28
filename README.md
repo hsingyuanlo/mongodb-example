@@ -37,5 +37,5 @@ Just run install, and it will help you to do below things
 
 # Q&A
 
-- 1. How to control mongodb when mongod is in security mode
--    You must config mongodb in normal mode first, stop them, and then run secure mode
+* How to control mongodb when mongod is in security mode <br>
+     You must config mongodb in normal mode first, stop them, and then run secure mode
