@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# You MUST make sure envinfo exists
 ENVINFO=~/.config/mongotest/envinfo
 
 check() {
@@ -37,8 +38,6 @@ start() {
                --fork \
                --httpinterface
     done
-
-    status
 }
 
 start_security() {
@@ -56,8 +55,6 @@ start_security() {
                --fork \
                --httpinterface
     done
-
-    status
 }
 
 stop() {
@@ -112,38 +109,6 @@ status() {
     ps aux | grep -v "grep" | grep "mongod" | awk '{print $2 "\t" $13 "\t" $15}'
 }
 
-build() {
-    # create mongodb path
-    for index in ${!LOCAL_PORTS[@]}
-    do
-        mkdir $DBPATH/srv$index
-    done
-
-    # clean log path
-    mkdir $DBPATH/log
-
-    # list 
-    ls -la $DBPATH
-}
-
-clean() {
-    # clean all mongodb data
-    for index in ${!LOCAL_PORTS[@]}
-    do
-        rm -rf $DBPATH/srv$index
-    done
-    # clean all logs
-    rm -rf $DBPATH/log
-
-    # list
-    ls -la $DBPATH
-}
-
-folder() {
-    echo "Display $DBPATH"
-    ls -la $DBPATH
-}
-
 login() {
     if [ ! -e $JSPATH/probe.js ]; then
         echo "$JSPATH/probe.js does not exist"
@@ -190,7 +155,6 @@ env() {
 
     echo "====================================="
     echo " DBPATH=$DBPATH"
-    echo " CONFPATH=$CONFPATH"
     echo "====================================="
 
     echo "====================================="
@@ -210,23 +174,14 @@ case "$1" in
     "start_s")
         start_security
         ;;
-    "stop")
-        stop
-        ;;
     "config")
         config
         ;;
+    "stop")
+        stop
+        ;;
     "status")
         status
-        ;;
-    "build")
-        build
-        ;;
-    "clean")
-        clean
-        ;;
-    "folder")
-        folder
         ;;
     "login")
         login
@@ -238,7 +193,7 @@ case "$1" in
         echo "----------------------------------------------------------------"
         echo " This script is used to create test environment for mongodb"
         echo " Usage: mcmd [options]"
-        echo " Options: start(start_s) | stop | config | status | build | clean | login | env"
+        echo " Options: start(start_s) | config | stop | status | login | env"
         ;;
 esac
 

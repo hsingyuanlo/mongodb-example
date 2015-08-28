@@ -1,16 +1,18 @@
+#
+CONFPATH=~/.config/mongotest
+
 # Process information
-LOCAL_HOST="192.168.80.11"
-LOCAL_PORTS=("27017" "27018" "27021")
+LOCAL_HOST=`ifconfig eth0 | grep "inet addr" | sed s/\ Bcast.*//g | sed s/inet\ addr://g | sed s/\ //g`
+LOCAL_PORTS=("29017" "29018" "29021")
 
 # Mongodb path
-DBPATH="/home/hylo/workspace/mongodb"
-CONFPATH="/home/hylo/workspace/mongotest/config"
+DBPATH="/tmp/mongodb"
 
 # Replica information
-REPLICA_NAME="theme"
-REPLICA_MEMBERS=("27017" "27018")
-REPLICA_ARBITER="27021"
+REPLICA_NAME="name"
+REPLICA_MEMBERS=("29017" "29018")
+REPLICA_ARBITER="29021"
 
 # Authentication
-AUTH_USER="hylo"
+AUTH_USER="name"
 AUTH_PASSWORD="1234"

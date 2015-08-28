@@ -1,23 +1,89 @@
 #!/bin/bash
 
-# copy envinfo to ~/.config/mongotest/
-if [ ! -e ~/.config/mongotest ]; then
-    mkdir ~/.config/mongotest
-fi
+. config/envinfo
 
-cp config/envinfo ~/.config/mongotest/
+build_all_db_dir() {
+	# create main dir
+    if [ ! -e $DBPATH ]; then
+        mkdir $DBPATH
+    fi
+    # create mongodb dirs
+    for index in ${!LOCAL_PORTS[@]}
+    do
+        mkdir $DBPATH/srv$index
+    done
+    # create log path
+    if [ ! -e $DBPATH/log ] ; then
+        mkdir $DBPATH/log
+    fi
+    # list 
+    ls -la $DBPATH
+}
 
-# create link to ~/bin/mcmd
-if [ ! -d ~/bin ]; then
-    mkdir ~/bin
-fi
+clean_all_db_dir() {
+    # remove log path
+    if [ -e $DBPATH/log ]; then
+        rm -rf $DBPATH/log
+    fi
+    # remove mongodb dirs
+    for index in ${!LOCAL_PORTS[@]}
+    do
+    	if [ -e $DBPATH/srv$index ]; then
+            rm -rf $DBPATH/srv$index
+        fi
+    done
+    # remove main dir
+    if [ -e $DBPATH ]; then
+        rmdir $DBPATH
+    fi
+}
 
-if [ -h ~/bin/mcmd ]; then
-    rm ~/bin/mcmd
-fi
+setup_config() {
+	# copy envinfo to ~/.config/mongotest/
+    if [ ! -e $CONFPATH ]; then
+        mkdir $CONFPATH
+    fi
 
-cp config/mcmd ~/bin/
-chmod +x ~/bin/mcmd
+    # overwrite all configuration
+    cp config/envinfo ~/.config/mongotest/ # This should not be changed
+    cp config/probe.js $CONFPATH
+    cp config/setup_template.js $CONFPATH
+    cp config/mongodb-keyfile $CONFPATH
 
-echo "[mklink] Run mcmd for more information..."
+    chmod 600 $CONFPATH/mongodb-keyfile # keyfile's permission should be 600
+
+    # create link to ~/bin/mcmd
+    if [ ! -d ~/bin ]; then
+        mkdir ~/bin
+    fi
+    # overwrite excutable file
+    cp config/mcmd ~/bin/
+    chmod +x ~/bin/mcmd
+}
+
+reset_config() {
+    if [ -e $CONFPATH ]; then
+        rm -rf $CONFPATH
+    fi
+
+    if [ -e ~/bin/mcmd ]; then
+    	rm ~/bin/mcmd
+    fi
+}
+
+case "$1" in
+	"-i")
+        setup_config
+        build_all_db_dir
+        echo "[mklink] Run mcmd for more information..."
+        ;;
+    "-u")
+        reset_config
+        clean_all_db_dir
+        ;;
+    *)
+        echo "./install [-i|-u]"
+        ;; 
+esac
+
 
